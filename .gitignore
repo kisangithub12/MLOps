@@ -1,0 +1,33 @@
+# Python environments and cache
+.venv/
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Generated runtime files
+logs/
+*.log
+*.db
+*.db-shm
+*.db-wal
+mlruns/
+mlartifacts/
+
+# Temporary Office files
+~$*
+
+# Generated models, predictions, and backups
+model_export/
+scored.csv
+*.bak
+
+# Airflow runtime files; keep DAG code
+cartvista-mlops/airflow_home/*
+!cartvista-mlops/airflow_home/dags/
+*.pid
