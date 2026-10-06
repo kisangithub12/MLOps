@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 .env
 .ipynb_checkpoints/
+mlflow.db
+mlflow.db-*
+mlartifacts/
+mlruns/

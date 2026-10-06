@@ -1,7 +1,10 @@
 from pathlib import Path
+import hashlib
 import json
 
 import joblib
+import matplotlib.pyplot as plt
+import mlflow
 import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
@@ -11,60 +14,132 @@ from sklearn.metrics import (
     ConfusionMatrixDisplay,
     RocCurveDisplay,
 )
-import matplotlib.pyplot as plt
+
+from tracking import setup_tracking
 
 
-project_dir = Path(__file__).resolve().parents[1]
+def main():
+    setup_tracking()
 
-model = joblib.load(project_dir / "models" / "model.joblib")
-test_data = pd.read_csv(
-    project_dir / "data" / "processed" / "test.csv"
-)
+    project_dir = Path(__file__).resolve().parents[1]
+    model_path = project_dir / "models" / "model.joblib"
 
-X_test = test_data.drop(columns=["target"])
-y_test = test_data["target"]
+    model = joblib.load(model_path)
+    test_data = pd.read_csv(
+        project_dir / "data" / "processed" / "test.csv"
+    )
 
-predictions = model.predict(X_test)
+    X_test = test_data.drop(columns=["target"])
+    y_test = test_data["target"]
 
-# Find the probability column for disease-present class 1.
-positive_index = list(model.classes_).index(1)
-probabilities = model.predict_proba(X_test)[:, positive_index]
+    classifier_name = type(model["classifier"]).__name__
+    model_hash = hashlib.sha256(model_path.read_bytes()).hexdigest()
 
-metrics = {
-    "accuracy": accuracy_score(y_test, predictions),
-    "precision": precision_score(y_test, predictions, zero_division=0),
-    "recall": recall_score(y_test, predictions, zero_division=0),
-    "roc_auc": roc_auc_score(y_test, probabilities),
-}
+    report_dir = project_dir / "reports"
+    plot_dir = report_dir / "figures"
+    plot_dir.mkdir(parents=True, exist_ok=True)
 
-report_dir = project_dir / "reports"
-plot_dir = report_dir / "figures"
-plot_dir.mkdir(parents=True, exist_ok=True)
+    with mlflow.start_run(
+        run_name=f"test_evaluation_{classifier_name}"
+    ):
+        mlflow.set_tags({
+            "stage": "test_evaluation",
+            "dataset": "UCI Heart Disease",
+            "model_sha256": model_hash,
+        })
 
-with open(report_dir / "test_metrics.json", "w") as file:
-    json.dump(metrics, file, indent=2)
+        mlflow.log_params({
+            "classifier": classifier_name,
+            "model_file": "models/model.joblib",
+            "test_records": len(test_data),
+            "feature_count": X_test.shape[1],
+            "positive_class": 1,
+            "prediction_threshold": 0.5,
+        })
 
-ConfusionMatrixDisplay.from_predictions(
-    y_test,
-    predictions,
-    display_labels=["Absent", "Present"],
-    cmap="Blues",
-)
-plt.title("Selected Model: Held-out Test Confusion Matrix")
-plt.tight_layout()
-plt.savefig(plot_dir / "test_confusion_matrix.png", dpi=200)
-plt.close()
+        mlflow.log_params({
+            f"classifier__{key}": value
+            for key, value in model["classifier"].get_params().items()
+        })
 
-RocCurveDisplay.from_predictions(y_test, probabilities)
-plt.title("Selected Model: Held-out Test ROC Curve")
-plt.tight_layout()
-plt.savefig(plot_dir / "test_roc_curve.png", dpi=200)
-plt.close()
+        # Evaluate the existing fitted pipeline without retraining.
+        predictions = model.predict(X_test)
 
-print("Selected classifier:", type(model["classifier"]).__name__)
-print("Test records:", len(test_data))
+        positive_index = list(model.classes_).index(1)
+        probabilities = model.predict_proba(X_test)[:, positive_index]
 
-for name, value in metrics.items():
-    print(f"{name}: {value:.4f}")
+        metrics = {
+            "accuracy": float(accuracy_score(y_test, predictions)),
+            "precision": float(
+                precision_score(
+                    y_test,
+                    predictions,
+                    zero_division=0,
+                )
+            ),
+            "recall": float(
+                recall_score(
+                    y_test,
+                    predictions,
+                    zero_division=0,
+                )
+            ),
+            "roc_auc": float(
+                roc_auc_score(y_test, probabilities)
+            ),
+        }
 
-print("\nMetrics and plots saved in reports/")
+        mlflow.log_metrics({
+            f"test_{name}": value
+            for name, value in metrics.items()
+        })
+
+        metrics_path = report_dir / "test_metrics.json"
+        with metrics_path.open("w", encoding="utf-8") as file:
+            json.dump(metrics, file, indent=2)
+
+        confusion_path = plot_dir / "test_confusion_matrix.png"
+        ConfusionMatrixDisplay.from_predictions(
+            y_test,
+            predictions,
+            labels=[0, 1],
+            display_labels=["Absent", "Present"],
+            cmap="Blues",
+        )
+        plt.title("Selected Model: Held-out Test Confusion Matrix")
+        plt.tight_layout()
+        plt.savefig(confusion_path, dpi=200)
+        plt.close()
+
+        roc_path = plot_dir / "test_roc_curve.png"
+        RocCurveDisplay.from_predictions(y_test, probabilities)
+        plt.title("Selected Model: Held-out Test ROC Curve")
+        plt.tight_layout()
+        plt.savefig(roc_path, dpi=200)
+        plt.close()
+
+        mlflow.log_artifact(
+            str(metrics_path),
+            artifact_path="reports",
+        )
+        mlflow.log_artifact(
+            str(confusion_path),
+            artifact_path="figures",
+        )
+        mlflow.log_artifact(
+            str(roc_path),
+            artifact_path="figures",
+        )
+
+        print("Selected classifier:", classifier_name)
+        print("Test records:", len(test_data))
+
+        for name, value in metrics.items():
+            print(f"{name}: {value:.4f}")
+
+        print("\nMetrics and plots saved in reports/")
+        print("Test evaluation logged to MLflow.")
+
+
+if __name__ == "__main__":
+    main()
