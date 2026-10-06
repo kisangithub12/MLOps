@@ -34,6 +34,7 @@ h11==0.16.0
 huey==3.4.0
 idna==3.20
 importlib-metadata==9.0.1
+iniconfig==2.3.0
 itsdangerous==2.2.0
 jinja2==3.1.6
 joblib==1.6.0
@@ -54,6 +55,7 @@ opentelemetry-semantic-conventions==0.66b1
 packaging==26.3
 pandas==3.0.6
 pillow==12.3.0
+pluggy==1.6.0
 prettytable==3.18.0
 propcache==0.5.4
 protobuf==6.33.6
@@ -63,11 +65,14 @@ pyasn1-modules==0.4.2
 pycparser==3.0
 pydantic==2.13.5
 pydantic-core==2.46.5
+pygments==2.21.0
 pyparsing==3.3.3
+pytest==9.1.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.4
 pyyaml==6.0.3
 requests==2.34.2
+ruff==0.16.10
 scikit-learn==1.9.1
 scipy==1.18.1
 seaborn==0.13.2

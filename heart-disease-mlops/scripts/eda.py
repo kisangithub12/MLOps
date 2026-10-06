@@ -2,6 +2,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 import pandas as pd
+import seaborn as sns
 
 project_dir = Path(__file__).resolve().parents[1]
 data = pd.read_csv(project_dir / "data" / "raw" / "heart_disease.csv")
@@ -53,7 +54,7 @@ plt.close(fig)
 print(f"\nPlot saved to: {output_file}")
 
 ## Histograms for the continuous features and a correlation heatmap
-import seaborn as sns
+
 
 # Continuous measurements—not category codes.
 continuous_features = ["age", "trestbps", "chol", "thalach", "oldpeak"]
