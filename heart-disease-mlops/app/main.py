@@ -6,7 +6,11 @@ import joblib
 import pandas as pd
 from fastapi import FastAPI, Request
 from pydantic import BaseModel, ConfigDict, Field
+from prometheus_fastapi_instrumentator import Instrumentator
+import logging
+import time
 
+logger = logging.getLogger("uvicorn.error")
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 MODEL_PATH = PROJECT_DIR / "models" / "model.joblib"
@@ -65,6 +69,32 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+Instrumentator().instrument(app).expose(app)
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    started = time.perf_counter()
+
+    try:
+        response = await call_next(request)
+    except Exception:
+        logger.exception(
+            "method=%s path=%s status=500 duration_ms=%.2f",
+            request.method,
+            request.url.path,
+            (time.perf_counter() - started) * 1000,
+        )
+        raise
+
+    logger.info(
+        "method=%s path=%s status=%s duration_ms=%.2f",
+        request.method,
+        request.url.path,
+        response.status_code,
+        (time.perf_counter() - started) * 1000,
+    )
+
+    return response
 
 @app.get("/health")
 def health():
