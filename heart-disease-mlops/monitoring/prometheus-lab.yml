@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: heart-disease-api
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - 10.100.11.226:8002
