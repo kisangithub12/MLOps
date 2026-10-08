@@ -82,5 +82,7 @@ jobs:
           path: |
             heart-disease-mlops/reports/
             heart-disease-mlops/models/
+            heart-disease-mlops/mlflow.db
+            heart-disease-mlops/mlartifacts/
           if-no-files-found: warn
           retention-days: 14
