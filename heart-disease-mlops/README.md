@@ -7,7 +7,7 @@ The implementation was developed on a local Windows laptop using WSL and Docker 
 **Author:** Kisan Navnath Kumbhar  
 **BITS ID:** 2025AE05737  
 **Repository:** [kisangithub12/MLOps](https://github.com/kisangithub12/MLOps)  
-**Project folder:** `heart-disease-mlops`
+**Project folder:** `heart-disease-mlops` \
 **Video Recording:** [Recording](https://drive.google.com/drive/folders/1kh-ooYm6mDwvsIAjFevZvOd2caD_olc0)
 
 ## Dataset and objective
